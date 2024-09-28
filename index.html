@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple PWA</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="js/main.js"></script>
+    <script src="js/indexedDB.js"></script>
+  </head>
+  <body>
+    <!-- layout container -->
+    <div class="container">
+      <h1 class="center">Hello, PWA!</h1>
+
+      <!-- User form -->
+      <form id="userForm">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required />
+        <br />
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required />
+        <br />
+        <button type="submit">Add User</button>
+      </form>
+
+      <!-- User table -->
+      <h2>Users</h2>
+      <table id="userTable" border="1">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+    </div>
+
+    <script>
+
+      // Handle form submission
+      document
+        .getElementById("userForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          const name = document.getElementById("name").value;
+          const email = document.getElementById("email").value;
+          const user = { name, email };
+          addUser(user).then(() => {
+            displayUsers();
+          });
+        });
+
+      // Function to display users
+      function displayUsers() {
+        getUsers()
+          .then((users) => {
+            const userTableBody = document
+              .getElementById("userTable")
+              .querySelector("tbody");
+            userTableBody.innerHTML = "";
+            users.forEach((user) => {
+              const row = document.createElement("tr");
+              row.innerHTML = `
+              <td>${user.id}</td>
+              <td>${user.name}</td>
+              <td>${user.email}</td>
+              <td>
+                <button onclick="editUser(${user.id})">Edit</button>
+                <button onclick="deleteUser(${user.id})">Delete</button>
+              </td>
+            `;
+              userTableBody.appendChild(row);
+            });
+          })
+          .catch((error) => {
+            console.log("Error retrieving users:", error);
+          });
+      }
+
+      // Function to delete a user
+      function deleteUser(userId) {
+        getUserById(userId).then(user => {
+        //   console.log('User to delete:', user);
+          deleteUserFromDB(user.id).then(() => {
+            displayUsers();
+          }).catch(error => {
+            console.log('Error deleting user:', error);
+          });
+        }).catch(error => {
+          console.log('Error retrieving user:', error);
+        });
+      }
+
+      // Function to edit a user
+      function editUser(userId) {
+        getUserById(userId)
+          .then((user) => {
+            document.getElementById("name").value = user.name;
+            document.getElementById("email").value = user.email;
+            document.getElementById("userForm").onsubmit = function (event) {
+              event.preventDefault();
+              const updatedUser = {
+                id: userId,
+                name: document.getElementById("name").value,
+                email: document.getElementById("email").value,
+              };
+              updateUser(updatedUser).then(() => {
+                displayUsers();
+                document.getElementById("userForm").onsubmit = addUserHandler;
+              });
+            };
+          })
+          .catch((error) => {
+            console.log("Error retrieving user:", error);
+          });
+      }
+
+      // Original form submission handler
+      function addUserHandler(event) {
+        event.preventDefault();
+        const name = document.getElementById("name").value;
+        const email = document.getElementById("email").value;
+        const user = { name, email };
+        addUser(user).then(() => {
+          displayUsers();
+        });
+      }
+
+      // Set the original form submission handler
+      document.getElementById("userForm").onsubmit = addUserHandler;
+
+      // Display users on page load
+      displayUsers();
+    </script>
+  </body>
+</html>
